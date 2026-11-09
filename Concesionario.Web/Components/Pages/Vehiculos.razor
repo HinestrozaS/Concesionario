@@ -1,0 +1,137 @@
+
+@page "/vehiculos"
+
+<PageTitle>Vehículos</PageTitle>
+
+<div class="container-fluid py-4">
+
+    <h1>Gestión de vehículos</h1>
+    <p class="text-secondary">
+        Registro y consulta de los vehículos asociados al taller.
+    </p>
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            <h5 class="mb-0">Información del vehículo</h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Número de serie</label>
+                    <input class="form-control" type="text"
+                           placeholder="Ingrese el número de serie" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Motor</label>
+                    <input class="form-control" type="text"
+                           placeholder="Información del motor" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Capacidad</label>
+                    <input class="form-control" type="number"
+                           placeholder="Ingrese la capacidad" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Valor</label>
+                    <input class="form-control" type="number"
+                           step="0.01" placeholder="Valor del vehículo" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Marca</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar marca</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Modelo</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar modelo</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Color</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar color</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Tipo de vehículo</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar tipo</option>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Descripción del vehículo</label>
+                    <textarea class="form-control" rows="3"
+                              placeholder="Descripción del vehículo">
+                    </textarea>
+                </div>
+
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" disabled>
+                    Guardar vehículo
+                </button>
+
+                <small class="text-secondary ms-2">
+                    Pendiente de conexión con la API.
+                </small>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+            <h5 class="mb-0">Vehículos registrados</h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table class="table table-striped table-hover">
+
+                    <thead>
+                        <tr>
+                            <th>Número de serie</th>
+                            <th>Motor</th>
+                            <th>Capacidad</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Color</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td colspan="7"
+                                class="text-center text-secondary">
+                                Los vehículos aparecerán aquí cuando conectemos la API.
+                            </td>
+                        </tr>
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>

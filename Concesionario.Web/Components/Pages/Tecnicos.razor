@@ -1,0 +1,115 @@
+
+@page "/tecnicos"
+
+<PageTitle>Técnicos</PageTitle>
+
+<div class="container-fluid py-4">
+
+    <h1>Gestión de técnicos</h1>
+    <p class="text-secondary">
+        Registro y consulta del personal técnico del taller.
+    </p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Información del técnico</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Nombre</label>
+                    <input class="form-control" type="text"
+                           placeholder="Nombre del técnico" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Apellidos</label>
+                    <input class="form-control" type="text"
+                           placeholder="Apellidos del técnico" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Fecha de nacimiento</label>
+                    <input class="form-control" type="date" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Teléfono</label>
+                    <input class="form-control" type="tel"
+                           placeholder="Teléfono" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Correo electrónico</label>
+                    <input class="form-control" type="email"
+                           placeholder="Correo electrónico" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Género</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar género</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Especialidades</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar especialidad</option>
+                    </select>
+                    <small class="text-secondary">
+                        Un técnico puede tener varias especialidades.
+                    </small>
+                </div>
+
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" disabled>
+                    Guardar técnico
+                </button>
+
+                <small class="text-secondary ms-2">
+                    Pendiente de conexión con la API.
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Técnicos registrados</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Identificación</th>
+                            <th>Nombre</th>
+                            <th>Apellidos</th>
+                            <th>Teléfono</th>
+                            <th>Correo</th>
+                            <th>Especialidades</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td colspan="7"
+                                class="text-center text-secondary">
+                                Los técnicos aparecerán aquí cuando conectemos la API.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+

@@ -1,0 +1,168 @@
+
+@page "/detalle-ticket"
+
+<PageTitle>Trabajos y repuestos</PageTitle>
+
+<div class="container-fluid py-4">
+
+    <h1>Trabajos y repuestos</h1>
+
+    <p class="text-secondary">
+        Administración de los trabajos realizados y repuestos utilizados
+        en cada ticket de servicio.
+    </p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Seleccionar ticket</h5>
+        </div>
+
+        <div class="card-body">
+            <label class="form-label">Número de ticket</label>
+            <select class="form-select">
+                <option value="">Seleccionar ticket</option>
+            </select>
+            <small class="text-secondary">
+                Los tickets se cargarán desde la API.
+            </small>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Agregar trabajo</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Servicio</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar servicio</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Horas trabajadas</label>
+                    <input class="form-control" type="number"
+                           min="0" step="0.01"
+                           placeholder="Ej. 2.5" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Descripción del trabajo</label>
+                    <textarea class="form-control" rows="3"
+                              placeholder="Describa el trabajo realizado">
+                    </textarea>
+                </div>
+
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" disabled>
+                    Agregar trabajo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Agregar repuesto</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Repuesto</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar repuesto</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Cantidad</label>
+                    <input class="form-control" type="number"
+                           min="1" step="1"
+                           placeholder="Cantidad" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Precio unitario</label>
+                    <input class="form-control" type="number"
+                           min="0" step="0.01"
+                           placeholder="0.00" />
+                </div>
+
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" disabled>
+                    Agregar repuesto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Detalle del ticket</h5>
+        </div>
+
+        <div class="card-body">
+
+            <h6>Trabajos realizados</h6>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Servicio</th>
+                            <th>Descripción</th>
+                            <th>Horas trabajadas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="4" class="text-center text-secondary">
+                                Los trabajos aparecerán aquí al conectar la API.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h6>Repuestos utilizados</h6>
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Repuesto</th>
+                            <th>Cantidad</th>
+                            <th>Precio unitario</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="4" class="text-center text-secondary">
+                                Los repuestos aparecerán aquí al conectar la API.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <p class="text-secondary mt-3">
+        Los formularios estarán disponibles cuando se conecten
+        los endpoints correspondientes de la API.
+    </p>
+
+</div>

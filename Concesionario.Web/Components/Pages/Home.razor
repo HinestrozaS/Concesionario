@@ -1,7 +1,119 @@
-﻿@page "/"
+﻿
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Panel principal</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid py-4">
 
-Welcome to your new app.
+    <h1 class="mb-2">Panel principal</h1>
+
+    <p class="text-secondary mb-4">
+        Sistema de gestión del taller de servicio de vehículos.
+    </p>
+
+    <div class="row g-3">
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-people-fill me-2"></i>
+                        Clientes
+                    </h5>
+                    <p class="card-text text-secondary">
+                        Registra y consulta la información de los clientes.
+                    </p>
+                    <NavLink class="btn btn-primary" href="clientes">
+                        Gestionar clientes
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-car-front-fill me-2"></i>
+                        Vehículos
+                    </h5>
+                    <p class="card-text text-secondary">
+                        Administra los vehículos registrados en el taller.
+                    </p>
+                    <NavLink class="btn btn-primary" href="vehiculos">
+                        Gestionar vehículos
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-clipboard-check me-2"></i>
+                        Tickets de servicio
+                    </h5>
+                    <p class="card-text text-secondary">
+                        Registra la entrada de vehículos y sus trabajos.
+                    </p>
+                    <NavLink class="btn btn-primary" href="tickets">
+                        Gestionar tickets
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-tools me-2"></i>
+                        Servicios
+                    </h5>
+                    <p class="card-text text-secondary">
+                        Consulta los servicios y sus tarifas por hora.
+                    </p>
+                    <NavLink class="btn btn-primary" href="servicios">
+                        Ver servicios
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-box-seam me-2"></i>
+                        Repuestos
+                    </h5>
+                    <p class="card-text text-secondary">
+                        Administra los repuestos y sus precios.
+                    </p>
+                    <NavLink class="btn btn-primary" href="repuestos">
+                        Ver repuestos
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-receipt me-2"></i>
+                        Facturación
+                    </h5>
+                    <p class="card-text text-secondary">
+                        Consulta las facturas y los valores de los servicios.
+                    </p>
+                    <NavLink class="btn btn-primary" href="facturacion">
+                        Consultar facturas
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

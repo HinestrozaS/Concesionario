@@ -1,6 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Concesionario.Web</a>
+        <a class="navbar-brand" href="">
+            Taller de Servicio
+        </a>
     </div>
 </div>
 
@@ -8,23 +11,78 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
+
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill me-2"></span>
+                Panel principal
+            </NavLink>
+        </div>
+
+        <div class="px-3 mt-3 mb-2 text-uppercase small text-secondary">
+            Administración
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="clientes">
+                <span class="bi bi-people-fill me-2"></span>
+                Clientes
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="vehiculos">
+                <span class="bi bi-car-front-fill me-2"></span>
+                Vehículos
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link" href="tecnicos">
+                <span class="bi bi-person-gear me-2"></span>
+                Técnicos
             </NavLink>
         </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="servicios">
+                <span class="bi bi-tools me-2"></span>
+                Servicios
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="repuestos">
+                <span class="bi bi-box-seam me-2"></span>
+                Repuestos
+            </NavLink>
+        </div>
+
+        <div class="px-3 mt-3 mb-2 text-uppercase small text-secondary">
+            Operación del taller
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="tickets">
+                <span class="bi bi-clipboard-check me-2"></span>
+                Tickets de servicio
+            </NavLink>
+        </div>
+
+<div class="nav-item px-3">
+    <NavLink class="nav-link" href="detalle-ticket">
+        <span class="bi bi-list-check me-2"></span>
+        Trabajos y repuestos
+    </NavLink>
+</div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="facturacion">
+                <span class="bi bi-receipt me-2"></span>
+                Facturación
+            </NavLink>
+        </div>
+
     </nav>
 </div>
 

@@ -1,0 +1,59 @@
+﻿@page "/funciones" 
+@using Concesionario.Contracts
+@using Concesionario.WEB.Services
+@inject ConcesionarioApiClient Api
+
+<h3>Funciones SQL Server</h3> 
+@if (error != null) { <div class="alert alert-danger">@error</div> } 
+<div class="card mb-4"><div class="card-body"> 
+    <h5>fn_TotalFactura <small class="text-muted">(escalar)</small></h5> 
+        <div class="row g-2 align-items-end"> 
+            <div class="col-auto"><label class="form-label">ID factura</label> 
+<input type="number" class="form-control" @bind="idFactura" /></div> 
+    <div class="col-auto"><button class="btn btn-primary" 
+        @onclick="CalcularTotal">Calcular</button></div> 
+            </div> 
+            @if (total != null) { <p class="mt-3 mb-0">Total de la factura @total.IdFactura: <strong>@total.Total.ToString("N2")</strong></p> } 
+            </div></div> 
+        <div class="card"><div class="card-body"> 
+            <h5>fn_TrabajosPorTicket <small class="text-muted">(de tabla)</small> 
+        </h5> 
+            <div class="row g-2 align-items-end"> 
+                <div class="col-auto"><label class="form-label">Ticket</label> 
+                    <select class="form-select" @bind="idTicket"> 
+                        <option value="0">-- elige un ticket --</option> 
+                        @foreach (var t in tickets) { <option 
+        value="@t.IdTicket">#@t.IdTicket · @t.Cliente · @t.NumSerie</option> } 
+        </select></div> 
+        <div class="col-auto"><button class="btn btn-primary" 
+        @onclick="ListarTrabajos">Listar trabajos</button></div>     
+        </div>    
+        <table class="table table-sm table-striped mt-3">        
+            <thead><tr><th>Servicio</th><th>Descripción</th><th>Horas</th> <th>Tarifa/hora</th><th>Subtotal</th></tr></thead>        
+            <tbody>        
+            @foreach (var w in trabajos)        
+            {            
+                <tr><td>@w.Servicio</td><td>@w.Descripcion</td> <td>@w.HorasTrabajadas</td><td>@w.TarifaHora.ToString("N2")</td> <td>@w.Subtotal.ToString("N2")</td></tr>        
+            }        
+            </tbody>    
+            </table> 
+            </div></div> 
+            @code {    
+                private int idFactura = 1;    
+                private int idTicket;    
+                private TotalFacturaDto? total;    
+                private List<TicketDto> tickets = new();    
+                private List<TrabajoDetalleDto> trabajos = new();   
+                private string? error;    
+                protected override async Task OnInitializedAsync()    
+                {        error = await Util.Intentar(async () => { tickets = await Api.Tickets(); });}   
+                private async Task CalcularTotal()    
+                {        
+                    total = null;        
+                    error = await Util.Intentar(async () => { total = await Api.TotalFactura(idFactura); });    
+                }    
+                private async Task ListarTrabajos()    
+                {       
+                    error = await Util.Intentar(async () => { trabajos = await Api.TrabajosDeTicket(idTicket); });    
+                } 
+            }

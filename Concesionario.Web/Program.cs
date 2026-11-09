@@ -1,13 +1,23 @@
 using Concesionario.Web.Components;
 
+using Concesionario.WEB.Services;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddScoped<ConcesionarioApiClient>();
+
 var app = builder.Build();
 
+builder.Services.AddScoped(sp =>
+    new HttpClient
+    {
+        BaseAddress = new Uri("https://localhost:7001/")
+    });
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

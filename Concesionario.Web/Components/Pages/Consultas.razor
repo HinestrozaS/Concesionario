@@ -1,0 +1,61 @@
+﻿@page "/consultas"
+@using Concesionario.Contracts
+@using System.Text.Json
+@inject ConcesionarioApiClient Api
+
+<h3>Consultas avanzadas</h3>
+@if (error != null) { <div class="alert alert-danger">@error</div> }
+<select class="form-select w-auto d-inline" @bind="clave">
+<option value="">-- elige una consulta --</option>
+@foreach (var c in catalogo) { <option
+value="@c.Clave">@c.Titulo</option> }
+</select>
+<button class="btn btn-primary ms-2" @onclick="Ejecutar"
+disabled="@string.IsNullOrEmpty(clave)">Ejecutar</button>
+@if (filas.Count > 0)
+{
+<p class="mt-3 text-muted">@filas.Count fila(s)</p>
+    <div style="overflow-x:auto">
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>@foreach (var col in filas[0].Keys) {
+                    <th>@col</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fila in filas)
+            {
+                <tr>
+                    @foreach (var col in filas[0].Keys)
+                    {
+                        <td>@fila[col]</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+}
+@code {
+    private List<ConsultaInfoDto> catalogo = new();
+    private List<Dictionary<string, JsonElement>> filas = new();
+    private string clave = "";
+    private string? error;
+    protected override async Task OnInitializedAsync()
+    {
+        error = await Util.Intentar(async () =>
+        {
+            catalogo = await
+        Api.CatalogoConsultas();
+        });
+    }
+    private async Task Ejecutar()
+    {
+        error = await Util.Intentar(async () =>
+        {
+            filas = await
+        Api.Consulta(clave);
+        });
+    }
+}

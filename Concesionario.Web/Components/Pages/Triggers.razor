@@ -1,0 +1,92 @@
+﻿@page "/triggers"
+@using Concesionario.Contracts
+@using Concesionario.WEB.Services
+@inject ConcesionarioApiClient Api
+<h3>Triggers</h3>
+<p class="text-muted">Crea un ticket: dispara
+<code>trg_Tickets_UnicoAbierto</code> (INSTEAD OF). Repite con el mismo
+vehículo para ver el error.
+Las facturas creadas en <em>Procedimientos</em> disparan
+<code>trg_AuditoriaFacturas</code> y el trigger con cursor que cierra el
+ticket: actualiza abajo para verlo.</p>
+@if (error != null) { <div class="alert alert-danger">@error</div> }
+@if (ok != null) { <div class="alert alert-success">@ok</div> }
+<div class="row g-2 align-items-end mb-4">
+<div class="col-auto"><label class="form-label">Cliente</label>
+<select class="form-select" @bind="nuevo.IdCliente">
+<option value="0">-- elige --</option>
+@foreach (var c in clientes) { <option value="@c.IdCliente">@c.NombreCompleto (@c.Ciudad)</option> }
+</select></div>
+<div class="col-auto"><label class="form-label">Vehículo</label>
+<select class="form-select" @bind="nuevo.NumSerie">
+<option value="">-- elige --</option>
+@foreach (var v in vehiculos) { <option
+value="@v.NumSerie">@v.Marca @v.Modelo · @v.NumSerie</option> }
+</select></div>
+<div class="col-auto"><button class="btn btn-primary"
+@onclick="CrearTicket">Crear ticket</button></div>
+<div class="col-auto"><button class="btn btn-outline-secondary"
+@onclick="Refrescar">Actualizar tablas</button></div>
+</div>
+<h5>AuditoriaFacturas <small class="text-muted">(la llenan los triggers
+AFTER)</small></h5>
+<table class="table table-sm table-striped">
+<thead><tr><th>ID</th><th>Acción</th><th>Factura</th><th>Fecha</th>
+<th>Usuario</th></tr></thead>
+<tbody>
+@foreach (var a in auditoria)
+{
+<tr><td>@a.IdAuditoria</td><td>@a.Accion</td><td>@a.IdFactura</td>
+<td>@a.FechaRegistro</td><td>@a.Usuario</td></tr>
+}
+</tbody>
+</table>
+<h5>LogErrores <small class="text-muted">(TRY...CATCH de los procedimientos)
+</small></h5>
+<table class="table table-sm table-striped">
+<thead><tr><th>ID</th><th>Fecha</th><th>Nº</th><th>Mensaje</th>
+<th>Procedimiento</th></tr></thead>
+<tbody>
+@foreach (var e in errores)
+{
+<tr><td>@e.IdLog</td><td>@e.FechaError</td><td>@e.ErrorNumber</td>
+<td>@e.ErrorMessage</td><td>@e.ErrorProcedure</td></tr>
+}
+</tbody>
+</table>
+@code {
+    private TicketCrearDto nuevo = new();
+    private List<ClienteDto> clientes = new();
+    private List<VehiculoDto> vehiculos = new();
+    private List<AuditoriaDto> auditoria = new();
+    private List<LogErrorDto> errores = new();
+    private string? error, ok;
+    protected override async Task OnInitializedAsync()
+    {
+        error = await Util.Intentar(async () =>
+        {
+            clientes = await Api.Clientes();
+            vehiculos = await Api.Vehiculos();
+        });
+        await Refrescar();
+    }
+    private async Task CrearTicket()
+    {
+        ok = null;
+        error = await Util.Intentar(async () =>
+        {
+            var r = await
+        Api.CrearTicket(nuevo); ok = $"Ticket creado con id {r.Id}.";
+        });
+        await Refrescar();
+    }
+    private async Task Refrescar()
+    {
+        var e = await Util.Intentar(async () =>
+        {
+            auditoria = await
+        Api.Auditoria(); errores = await Api.Errores();
+        });
+        error ??= e;
+    }
+}

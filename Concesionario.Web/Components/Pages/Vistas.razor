@@ -1,0 +1,54 @@
+﻿@page "/vistas" 
+@using Concesionario.Contracts 
+@using Concesionario.WEB.Services
+@inject ConcesionarioApiClient Api
+
+<h3>Vistas SQL Server</h3>
+<button class="btn btn-primary mb-3" @onclick="Cargar">Actualizar</button> 
+@if (error != null) {<div class="alert alert-danger">@error</div>}
+
+<h5>vw_ResumenFacturas <small class="text-muted">(vista estándar; el total se calcula)</small></h5>
+
+<div style="overflow-x:auto"> 
+    <table class="table table-sm table-striped">    
+        <thead><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Asesor</th> <th>Ticket</th><th>Vehículo</th><th>Trabajos</th><th>Repuestos</th> <th>Total</th></tr></thead>    
+        <tbody>    
+        @foreach (var f in facturas)    
+        {
+            <tr>            
+                <td>@f.IdFactura</td><td>@(f.FechaVenta?.ToShortDateString()) </td><td>@f.Cliente</td><td>@f.Asesor</td><td>@f.IdTicket</td>            
+                <td>@f.Marca @f.Modelo (@f.NumSerie)</td>            
+                <td>@f.TotalTrabajos.ToString("N2")</td>
+                <td>@f.TotalRepuestos.ToString("N2")</td><td>@f.Total.ToString("N2")</td>        
+            </tr>
+}
+</tbody> 
+</table> 
+</div>
+
+<h5>vw_IngresosPorServicio <small class="text-muted">(vista indexada)</small> 
+</h5>
+<table class="table table-sm table-striped w-auto">    
+    <thead><tr><th>Servicio</th><th>Trabajos</th><th>Horas</th> <th>Ingresos</th></tr></thead>    
+    <tbody>    
+        @foreach (var s in ingresos)    {
+<tr>
+    <td>@s.NomServicio</td>
+    <td>@s.CantidadTrabajos</td> 
+    <td>@s.HorasTotales</td>
+    <td>@s.IngresosTotales.ToString("N2")</td>
+</tr>
+}
+</tbody> 
+</table>
+
+@code {    
+    private List<FacturaResumenDto> facturas = new();    
+    private List<IngresoServicioDto> ingresos = new();
+    private string? error; 
+    protected override async Task OnInitializedAsync() => await Cargar(); 
+    private async Task Cargar() { 
+        error = await Util.Intentar(async () => { 
+            facturas = await Api.Facturas(); 
+            ingresos = await Api.IngresosPorServicio(); }); }
+}

@@ -7,165 +7,249 @@ namespace Concesionario.Api.Repositories;
 
 public interface IConcesionarioRepository
 {
-    Task<IEnumerable<FacturaDto>> ResumenVentasAsync();
-    Task<IEnumerable<ResumenClienteDto>> ResumenPorClienteAsync();
-    Task<IEnumerable<FacturaDto>> FacturasPorFechaAsync(DateTime desde, DateTime hasta);
-    Task<decimal> DescuentoAsync(int idCliente, decimal monto);
-    Task<int> RegistrarFacturaAsync(FacturaCrearDto dto);
-    Task<ResultadoCursorDto> ProcesarPendientesAsync(decimal umbral);
-    Task<int> ActualizarPreciosAsync(ActualizarPreciosDto dto);
+    // Vistas
+    Task<IEnumerable<FacturaResumenDto>> FacturasAsync();
+    Task<IEnumerable<IngresoServicioDto>> IngresosPorServicioAsync();
+
+    // Funciones
+    Task<TotalFacturaDto> TotalFacturaAsync(int idFactura);
+    Task<IEnumerable<TrabajoDetalleDto>> TrabajosPorTicketAsync(int idTicket);
+
+    // Procedimientos almacenados
+    Task<int> CrearTicketAsync(TicketCrearDto dto);
+    Task<int> AgregarTrabajoAsync(int idTicket, TrabajoCrearDto dto);
+    Task<int> FacturarTicketAsync(FacturaCrearDto dto);
+    Task<int> AjustarTarifasAsync(AjusteTarifasDto dto);
+    Task<ResultadoCursorDto> FacturarPendientesAsync(int idAsesor);
+
+    // Listados para las pantallas
     Task<IEnumerable<ClienteDto>> ClientesAsync();
-    Task<int> RegistrarClienteAsync(ClienteCrearDto dto);
+    Task<IEnumerable<VehiculoDto>> VehiculosAsync();
+    Task<IEnumerable<TicketDto>> TicketsAsync();
+    Task<IEnumerable<AsesorDto>> AsesoresAsync();
+    Task<IEnumerable<ServicioDto>> ServiciosAsync();
+
+    // Evidencia de triggers y TRY-CATCH
     Task<IEnumerable<AuditoriaDto>> AuditoriaAsync();
     Task<IEnumerable<LogErrorDto>> ErroresAsync();
+
+    // Seguridad
     Task RegistrarUsuarioAsync(LoginDto dto);
     Task<bool> LoginAsync(LoginDto dto);
-    Task<IEnumerable<CatalogoItemDto>?> CatalogoAsync(string tipo);
 }
 
 public class ConcesionarioRepository : IConcesionarioRepository
 {
     private readonly string _cs;
+
     public ConcesionarioRepository(IConfiguration config) =>
         _cs = config.GetConnectionString("DefaultConnection")
               ?? throw new InvalidOperationException("Falta ConnectionStrings:DefaultConnection");
 
     private SqlConnection Db() => new(_cs);
 
-    // Lista blanca de catálogos para los desplegables de la Web (la Web nunca manda SQL)
-    private static readonly Dictionary<string, string> Catalogos = new()
-    {
-        ["ciudades"] = "SELECT idCiudad AS Id, NomCiudad AS Nombre FROM dbo.Ciudades ORDER BY NomCiudad",
-        ["generos"] = "SELECT idGenero AS Id, NomGenero AS Nombre FROM dbo.Generos ORDER BY NomGenero",
-        ["asesores"] = "SELECT A.idPersona AS Id, P.Nombre + ' ' + P.Apellidos AS Nombre FROM dbo.Asesores A JOIN dbo.Personas P ON P.idPersona = A.idPersona ORDER BY P.Nombre",
-        ["tickets-sin-factura"] = @"SELECT T.idTicket AS Id, CONCAT('Ticket ', T.idTicket, ' - ', P.Nombre, ' ', P.Apellidos, ' - ', T.NumSerie) AS Nombre
-                                   FROM dbo.Tickets T
-                                   JOIN dbo.Personas P ON P.idPersona = T.idCliente
-                                   LEFT JOIN dbo.Facturas F ON F.idTicket = T.idTicket
-                                   WHERE F.idFactura IS NULL ORDER BY T.idTicket"
-    };
-
-    public async Task<IEnumerable<CatalogoItemDto>?> CatalogoAsync(string tipo)
-    {
-        if (!Catalogos.TryGetValue(tipo, out var sql)) return null;
-        using var db = Db();
-        return await db.QueryAsync<CatalogoItemDto>(sql);
-    }
-
-    // ---- Vistas (Jhonny) ----
-    public async Task<IEnumerable<FacturaDto>> ResumenVentasAsync()
+    // ------------------------------------------------------------------
+    // VISTAS (03_Vistas_Funciones.sql)
+    // ------------------------------------------------------------------
+    public async Task<IEnumerable<FacturaResumenDto>> FacturasAsync()
     {
         using var db = Db();
-        return await db.QueryAsync<FacturaDto>(
-            "SELECT idFactura, FechaVenta, Cliente, Asesor, NumSerie, TotalRepuestos, TotalManoObra, Total FROM dbo.vw_ResumenVentas ORDER BY idFactura");
+        return await db.QueryAsync<FacturaResumenDto>(
+            @"SELECT idFactura AS IdFactura, FechaVenta, Cliente, Asesor, idTicket AS IdTicket,
+                     Marca, Modelo, NumSerie, TotalTrabajos, TotalRepuestos, Total
+              FROM dbo.vw_ResumenFacturas
+              ORDER BY idFactura");
     }
 
-    public async Task<IEnumerable<ResumenClienteDto>> ResumenPorClienteAsync()
+    public async Task<IEnumerable<IngresoServicioDto>> IngresosPorServicioAsync()
     {
         using var db = Db();
-        // NOEXPAND obliga a leer el índice de la vista indexada en cualquier edición de SQL Server
-        return await db.QueryAsync<ResumenClienteDto>(
-            "SELECT idCliente, CantidadLineas, TotalRepuestos FROM dbo.vw_RepuestosPorClienteIndexada WITH (NOEXPAND) ORDER BY TotalRepuestos DESC");
+        // NOEXPAND obliga a leer el índice de la vista indexada en cualquier edición de SQL Server.
+        // COUNT_BIG devuelve bigint: se convierte a INT para el DTO.
+        return await db.QueryAsync<IngresoServicioDto>(
+            @"SELECT NomServicio,
+                     CAST(CantidadTrabajos AS INT) AS CantidadTrabajos,
+                     HorasTotales,
+                     IngresosTotales
+              FROM dbo.vw_IngresosPorServicio WITH (NOEXPAND)
+              ORDER BY NomServicio");
     }
 
-    // ---- Funciones (Jhonny) ----
-    public async Task<IEnumerable<FacturaDto>> FacturasPorFechaAsync(DateTime desde, DateTime hasta)
+    // ------------------------------------------------------------------
+    // FUNCIONES (03_Vistas_Funciones.sql)
+    // ------------------------------------------------------------------
+    public async Task<TotalFacturaDto> TotalFacturaAsync(int idFactura)
     {
         using var db = Db();
-        return await db.QueryAsync<FacturaDto>(
-            "SELECT idFactura, FechaVenta, Cliente, Total FROM dbo.fn_ListarFacturasPorFecha(@desde, @hasta) ORDER BY FechaVenta",
-            new { desde = desde.Date, hasta = hasta.Date });
+        return await db.QuerySingleAsync<TotalFacturaDto>(
+            "SELECT @idFactura AS IdFactura, dbo.fn_TotalFactura(@idFactura) AS Total",
+            new { idFactura });
     }
 
-    public async Task<decimal> DescuentoAsync(int idCliente, decimal monto)
+    public async Task<IEnumerable<TrabajoDetalleDto>> TrabajosPorTicketAsync(int idTicket)
     {
         using var db = Db();
-        return await db.ExecuteScalarAsync<decimal>(
-            "SELECT dbo.fn_CalcularDescuentoCliente(@idCliente, @monto)", new { idCliente, monto });
+        return await db.QueryAsync<TrabajoDetalleDto>(
+            @"SELECT Servicio, Descripcion, HorasTrabajadas, TarifaHora, Subtotal
+              FROM dbo.fn_TrabajosPorTicket(@idTicket)",
+            new { idTicket });
     }
 
-    // ---- Procedimientos y triggers (Samuel) ----
-    public async Task<int> RegistrarFacturaAsync(FacturaCrearDto d)
+    // ------------------------------------------------------------------
+    // PROCEDIMIENTOS ALMACENADOS (04_Soporte_SP_Triggers.sql)
+    // ------------------------------------------------------------------
+
+    // Dispara trg_Tickets_UnicoAbierto (INSTEAD OF INSERT)
+    public async Task<int> CrearTicketAsync(TicketCrearDto d)
+    {
+        using var db = Db();
+        var p = new DynamicParameters();
+        p.Add("@idCliente", d.IdCliente);
+        p.Add("@NumSerie", d.NumSerie);
+        p.Add("@idTicketGenerado", dbType: DbType.Int32, direction: ParameterDirection.Output);
+        await db.ExecuteAsync("dbo.sp_RegistrarTicket", p, commandType: CommandType.StoredProcedure);
+        return p.Get<int>("@idTicketGenerado");
+    }
+
+    public async Task<int> AgregarTrabajoAsync(int idTicket, TrabajoCrearDto d)
+    {
+        using var db = Db();
+        var p = new DynamicParameters();
+        p.Add("@idTicket", idTicket);
+        p.Add("@idServicio", d.IdServicio);
+        p.Add("@HorasTrabajadas", d.HorasTrabajadas, DbType.Decimal, precision: 4, scale: 2);
+        p.Add("@Descripcion", d.Descripcion);
+        p.Add("@idTrabajoGenerado", dbType: DbType.Int32, direction: ParameterDirection.Output);
+        await db.ExecuteAsync("dbo.sp_AgregarTrabajo", p, commandType: CommandType.StoredProcedure);
+        return p.Get<int>("@idTrabajoGenerado");
+    }
+
+    // Dispara trg_AuditoriaFacturas y trg_Facturas_CerrarTicketCursor
+    public async Task<int> FacturarTicketAsync(FacturaCrearDto d)
     {
         using var db = Db();
         var p = new DynamicParameters();
         p.Add("@idTicket", d.IdTicket);
         p.Add("@idAsesor", d.IdAsesor);
-        p.Add("@FechaVenta", d.FechaVenta, DbType.Date);
         p.Add("@idFacturaGenerada", dbType: DbType.Int32, direction: ParameterDirection.Output);
-        await db.ExecuteAsync("dbo.sp_RegistrarFacturaConTransaccion", p, commandType: CommandType.StoredProcedure);
+        await db.ExecuteAsync("dbo.sp_RegistrarFacturaTicket", p, commandType: CommandType.StoredProcedure);
         return p.Get<int>("@idFacturaGenerada");
     }
 
-    public async Task<ResultadoCursorDto> ProcesarPendientesAsync(decimal umbral)
+    public async Task<int> AjustarTarifasAsync(AjusteTarifasDto d)
     {
         using var db = Db();
         var p = new DynamicParameters();
-        p.Add("@Umbral", umbral, DbType.Decimal, precision: 18, scale: 2);
-        p.Add("@Marcadas", dbType: DbType.Int32, direction: ParameterDirection.Output);
-        var filas = (await db.QueryAsync<TicketPendienteDto>("dbo.sp_ProcesarFacturasPendientesCursor", p,
-            commandType: CommandType.StoredProcedure)).ToList();
-        return new ResultadoCursorDto { Marcadas = p.Get<int>("@Marcadas"), Tickets = filas };
-    }
-
-    public async Task<int> ActualizarPreciosAsync(ActualizarPreciosDto d)
-    {
-        using var db = Db();
-        var p = new DynamicParameters();
-        p.Add("@Filtro", d.Filtro);
         p.Add("@Porcentaje", d.Porcentaje, DbType.Decimal, precision: 5, scale: 2);
+        p.Add("@idServicio", d.IdServicio, DbType.Int32);
         p.Add("@FilasImpactadas", dbType: DbType.Int32, direction: ParameterDirection.Output);
-        await db.ExecuteAsync("dbo.sp_ActualizarPreciosPorLote", p, commandType: CommandType.StoredProcedure);
+        await db.ExecuteAsync("dbo.sp_AjustarTarifasServicios", p, commandType: CommandType.StoredProcedure);
         return p.Get<int>("@FilasImpactadas");
     }
 
+    // Procedimiento con CURSOR + TRY...CATCH. Devuelve las facturas creadas (SELECT de la vista)
+    public async Task<ResultadoCursorDto> FacturarPendientesAsync(int idAsesor)
+    {
+        using var db = Db();
+        var p = new DynamicParameters();
+        p.Add("@idAsesor", idAsesor);
+        p.Add("@Facturadas", dbType: DbType.Int32, direction: ParameterDirection.Output);
+        // Se enumera todo el resultado ANTES de leer el parámetro OUTPUT
+        var facturas = (await db.QueryAsync<FacturaCursorDto>(
+            "dbo.sp_FacturarTicketsPendientesCursor", p, commandType: CommandType.StoredProcedure)).ToList();
+        return new ResultadoCursorDto
+        {
+            Facturadas = p.Get<int>("@Facturadas"),
+            Facturas = facturas
+        };
+    }
+
+    // ------------------------------------------------------------------
+    // LISTADOS PARA LAS PANTALLAS
+    // ------------------------------------------------------------------
     public async Task<IEnumerable<ClienteDto>> ClientesAsync()
     {
         using var db = Db();
         return await db.QueryAsync<ClienteDto>(
-            @"SELECT C.idPersona AS IdCliente, P.Nombre, P.Apellidos, P.Correo, P.Telefono, C.Direccion, Ci.NomCiudad AS Ciudad
+            @"SELECT C.idPersona AS IdCliente, P.Nombre, P.Apellidos, P.Correo, P.Telefono,
+                     C.Direccion, Ci.NomCiudad AS Ciudad
               FROM dbo.Clientes C
               JOIN dbo.Personas P ON P.idPersona = C.idPersona
               LEFT JOIN dbo.Ciudades Ci ON Ci.idCiudad = C.idCiudad
               ORDER BY C.idPersona");
     }
 
-    public async Task<int> RegistrarClienteAsync(ClienteCrearDto d)
+    public async Task<IEnumerable<VehiculoDto>> VehiculosAsync()
     {
         using var db = Db();
-        var p = new DynamicParameters();
-        p.Add("@Nombre", d.Nombre);
-        p.Add("@Apellidos", d.Apellidos);
-        p.Add("@FechaNacimiento", d.FechaNacimiento, DbType.Date);
-        p.Add("@Telefono", d.Telefono);
-        p.Add("@Correo", d.Correo);
-        p.Add("@idGenero", d.IdGenero, DbType.Int32);
-        p.Add("@Direccion", d.Direccion);
-        p.Add("@idCiudad", d.IdCiudad, DbType.Int32);
-        p.Add("@idClienteGenerado", dbType: DbType.Int32, direction: ParameterDirection.Output);
-        await db.ExecuteAsync("dbo.sp_RegistrarCliente", p, commandType: CommandType.StoredProcedure);
-        return p.Get<int>("@idClienteGenerado");
+        return await db.QueryAsync<VehiculoDto>(
+            @"SELECT V.NumSerie, Ma.NomMarca AS Marca, Mo.NomModelo AS Modelo
+              FROM dbo.Vehiculos V
+              JOIN dbo.Marcas Ma ON Ma.idMarca = V.idMarca
+              JOIN dbo.Modelos Mo ON Mo.idModelo = V.idModelo
+              ORDER BY Ma.NomMarca, Mo.NomModelo, V.NumSerie");
     }
 
+    public async Task<IEnumerable<TicketDto>> TicketsAsync()
+    {
+        using var db = Db();
+        return await db.QueryAsync<TicketDto>(
+            @"SELECT T.idTicket AS IdTicket,
+                     P.Nombre + ' ' + P.Apellidos AS Cliente,
+                     T.NumSerie,
+                     CAST(CASE WHEN F.idFactura IS NULL THEN 0 ELSE 1 END AS BIT) AS Facturado
+              FROM dbo.Tickets T
+              JOIN dbo.Personas P ON P.idPersona = T.idCliente
+              LEFT JOIN dbo.Facturas F ON F.idTicket = T.idTicket
+              ORDER BY T.idTicket DESC");
+    }
+
+    public async Task<IEnumerable<AsesorDto>> AsesoresAsync()
+    {
+        using var db = Db();
+        return await db.QueryAsync<AsesorDto>(
+            @"SELECT A.idPersona AS IdAsesor, P.Nombre + ' ' + P.Apellidos AS NombreCompleto
+              FROM dbo.Asesores A
+              JOIN dbo.Personas P ON P.idPersona = A.idPersona
+              ORDER BY P.Nombre, P.Apellidos");
+    }
+
+    public async Task<IEnumerable<ServicioDto>> ServiciosAsync()
+    {
+        using var db = Db();
+        return await db.QueryAsync<ServicioDto>(
+            "SELECT idServicio AS IdServicio, NomServicio FROM dbo.Servicios ORDER BY NomServicio");
+    }
+
+    // ------------------------------------------------------------------
+    // EVIDENCIA DE TRIGGERS Y TRY...CATCH
+    // ------------------------------------------------------------------
     public async Task<IEnumerable<AuditoriaDto>> AuditoriaAsync()
     {
         using var db = Db();
         return await db.QueryAsync<AuditoriaDto>(
-            "SELECT TOP 100 Id_Auditoria AS IdAuditoria, Accion, idFactura AS IdFactura, FechaRegistro, Usuario FROM dbo.AuditoriaFacturas ORDER BY Id_Auditoria DESC");
+            @"SELECT TOP 100 IdAuditoria, Accion, idFactura AS IdFactura, FechaRegistro, Usuario
+              FROM dbo.AuditoriaFacturas
+              ORDER BY IdAuditoria DESC");
     }
 
     public async Task<IEnumerable<LogErrorDto>> ErroresAsync()
     {
         using var db = Db();
         return await db.QueryAsync<LogErrorDto>(
-            "SELECT TOP 100 Id_Log AS IdLog, FechaError, ErrorNumber, ErrorMessage, ErrorProcedure, Usuario FROM dbo.LogErrores ORDER BY Id_Log DESC");
+            @"SELECT TOP 100 IdLog, FechaError, ErrorNumber, ErrorMessage, ErrorProcedure, Usuario
+              FROM dbo.LogErrores
+              ORDER BY IdLog DESC");
     }
 
-    // ---- Seguridad (Samuel) ----
+    // ------------------------------------------------------------------
+    // SEGURIDAD (05_Seguridad.sql): hash SHA2_256 con sal
+    // ------------------------------------------------------------------
     public async Task RegistrarUsuarioAsync(LoginDto d)
     {
         using var db = Db();
-        await db.ExecuteAsync("dbo.sp_RegistrarUsuario", new { User = d.Username, ClavePlana = d.Password },
+        await db.ExecuteAsync("dbo.sp_RegistrarUsuario",
+            new { User = d.Username, ClavePlana = d.Password },
             commandType: CommandType.StoredProcedure);
     }
 
@@ -173,7 +257,8 @@ public class ConcesionarioRepository : IConcesionarioRepository
     {
         using var db = Db();
         var valido = await db.ExecuteScalarAsync<int>("dbo.sp_ValidarUsuario",
-            new { User = d.Username, ClavePlana = d.Password }, commandType: CommandType.StoredProcedure);
+            new { User = d.Username, ClavePlana = d.Password },
+            commandType: CommandType.StoredProcedure);
         return valido == 1;
     }
 }

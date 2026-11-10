@@ -1,28 +1,21 @@
 using Concesionario.Web.Components;
-
 using Concesionario.WEB.Services;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddScoped<ConcesionarioApiClient>();
+// Debe ir ANTES de builder.Build()
+// El puerto debe coincidir con el del API (http 5100 / https 7000)
+builder.Services.AddHttpClient<ConcesionarioApiClient>(c =>
+    c.BaseAddress = new Uri("http://localhost:5100/"));
 
 var app = builder.Build();
 
-builder.Services.AddScoped(sp =>
-    new HttpClient
-    {
-        BaseAddress = new Uri("https://localhost:7001/")
-    });
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);

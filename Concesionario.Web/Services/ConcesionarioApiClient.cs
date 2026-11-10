@@ -14,16 +14,37 @@ public class ConcesionarioApiClient
         _http = http;
     }
 
+    // Si el API responde con error (400 con {Error, Numero}), se lanza el mensaje real de SQL Server
+    // (por ejemplo el THROW del trigger o de un procedimiento) en lugar de un "400" genérico.
+    private static async Task Validar(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode) return;
+
+        try
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiError>();
+            if (error is not null && !string.IsNullOrWhiteSpace(error.Error))
+                throw new ApiException(error.Error, error.Numero);
+        }
+        catch (JsonException) { }
+        catch (NotSupportedException) { }
+
+        throw new ApiException($"El API respondió {(int)response.StatusCode} ({response.ReasonPhrase}).");
+    }
+
     private async Task<T> Get<T>(string url)
     {
-        return await _http.GetFromJsonAsync<T>(url)
+        var response = await _http.GetAsync(url);
+        await Validar(response);
+
+        return await response.Content.ReadFromJsonAsync<T>()
             ?? throw new Exception("No se recibieron datos del servidor.");
     }
 
     private async Task<T> Post<T>(string url, object datos)
     {
         var response = await _http.PostAsJsonAsync(url, datos);
-        response.EnsureSuccessStatusCode();
+        await Validar(response);
 
         return await response.Content.ReadFromJsonAsync<T>()
             ?? throw new Exception("Respuesta vacía del servidor.");
@@ -32,7 +53,7 @@ public class ConcesionarioApiClient
     private async Task Post(string url, object datos)
     {
         var response = await _http.PostAsJsonAsync(url, datos);
-        response.EnsureSuccessStatusCode();
+        await Validar(response);
     }
     // ERRORES
     public Task<List<LogErrorDto>> Errores()

@@ -17,6 +17,8 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors();
 
+// Si SQL Server lanza un error (THROW de un SP o de un trigger) se devuelve 400 con el mensaje,
+// para que la Web pueda mostrarlo en pantalla.
 static async Task<IResult> Ejecutar(Func<Task<IResult>> accion)
 {
     try { return await accion(); }
@@ -25,52 +27,56 @@ static async Task<IResult> Ejecutar(Func<Task<IResult>> accion)
 
 var api = app.MapGroup("/api");
 
-// Vistas
-api.MapGet("/facturas", (IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(await r.ResumenVentasAsync())));
-api.MapGet("/facturas/resumen-por-cliente", (IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(await r.ResumenPorClienteAsync())));
+// ---------------- Vistas ----------------
+api.MapGet("/vistas/facturas", (IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.FacturasAsync())));
+api.MapGet("/vistas/ingresos-servicio", (IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.IngresosPorServicioAsync())));
 
-// Funciones
-api.MapGet("/facturas/por-fecha", (DateTime desde, DateTime hasta, IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(await r.FacturasPorFechaAsync(desde, hasta))));
-api.MapGet("/clientes/{id:int}/descuento", (int id, decimal monto, IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(new DescuentoDto { IdCliente = id, Monto = monto, Descuento = await r.DescuentoAsync(id, monto) })));
+// ---------------- Funciones ----------------
+api.MapGet("/funciones/total-factura/{idFactura:int}", (int idFactura, IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.TotalFacturaAsync(idFactura))));
+api.MapGet("/funciones/trabajos-ticket/{idTicket:int}", (int idTicket, IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.TrabajosPorTicketAsync(idTicket))));
 
-// Procedimientos almacenados
+// ---------------- Procedimientos almacenados ----------------
+api.MapPost("/tickets", (TicketCrearDto dto, IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(new IdResultDto { Id = await r.CrearTicketAsync(dto) })));
+api.MapPost("/tickets/{idTicket:int}/trabajos", (int idTicket, TrabajoCrearDto dto, IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(new IdResultDto { Id = await r.AgregarTrabajoAsync(idTicket, dto) })));
 api.MapPost("/facturas", (FacturaCrearDto dto, IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(new IdResultDto { Id = await r.RegistrarFacturaAsync(dto) })));
-api.MapPost("/facturas/procesar-pendientes", (decimal? umbral, IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(await r.ProcesarPendientesAsync(umbral ?? 500_000m))));
-api.MapPost("/repuestos/actualizar-precios", (ActualizarPreciosDto dto, IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(new FilasDto { Filas = await r.ActualizarPreciosAsync(dto) })));
+    Ejecutar(async () => Results.Ok(new IdResultDto { Id = await r.FacturarTicketAsync(dto) })));
+api.MapPost("/servicios/ajustar-tarifas", (AjusteTarifasDto dto, IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(new FilasDto { Filas = await r.AjustarTarifasAsync(dto) })));
+api.MapPost("/facturas/facturar-pendientes", (FacturarPendientesRequest req, IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.FacturarPendientesAsync(req.IdAsesor))));
 
-// Clientes (dispara el trigger INSTEAD OF) y evidencia de triggers
+// ---------------- Listados (desplegables y tablas) ----------------
 api.MapGet("/clientes", (IConcesionarioRepository r) =>
     Ejecutar(async () => Results.Ok(await r.ClientesAsync())));
-api.MapPost("/clientes", (ClienteCrearDto dto, IConcesionarioRepository r) =>
-    Ejecutar(async () => Results.Ok(new IdResultDto { Id = await r.RegistrarClienteAsync(dto) })));
+api.MapGet("/vehiculos", (IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.VehiculosAsync())));
+api.MapGet("/tickets", (IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.TicketsAsync())));
+api.MapGet("/asesores", (IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.AsesoresAsync())));
+api.MapGet("/servicios", (IConcesionarioRepository r) =>
+    Ejecutar(async () => Results.Ok(await r.ServiciosAsync())));
+
+// ---------------- Evidencia de triggers y TRY...CATCH ----------------
 api.MapGet("/auditoria", (IConcesionarioRepository r) =>
     Ejecutar(async () => Results.Ok(await r.AuditoriaAsync())));
 api.MapGet("/errores", (IConcesionarioRepository r) =>
     Ejecutar(async () => Results.Ok(await r.ErroresAsync())));
 
-// Catálogos para desplegables (ciudades, generos, asesores, tickets-sin-factura)
-api.MapGet("/catalogos/{tipo}", (string tipo, IConcesionarioRepository r) =>
-    Ejecutar(async () =>
-    {
-        var items = await r.CatalogoAsync(tipo);
-        return items is null ? Results.NotFound() : Results.Ok(items);
-    }));
-
-// Seguridad
-api.MapPost("/auth/registro", (LoginDto dto, IConcesionarioRepository r) =>
+// ---------------- Seguridad ----------------
+api.MapPost("/auth/registrar", (LoginDto dto, IConcesionarioRepository r) =>
     Ejecutar(async () => { await r.RegistrarUsuarioAsync(dto); return Results.Ok(true); }));
 api.MapPost("/auth/login", (LoginDto dto, IConcesionarioRepository r) =>
     Ejecutar(async () => Results.Ok(await r.LoginAsync(dto))));
 
-// Consultas avanzadas (catálogo de Esteban, con lista blanca)
-api.MapGet("/consultas", (IConsultasRepository c) => Results.Ok(c.Catalogo()));
+// ---------------- Consultas avanzadas (catálogo de Esteban, con lista blanca) ----------------
+api.MapGet("/consultas/catalogo", (IConsultasRepository c) => Results.Ok(c.Catalogo()));
 api.MapGet("/consultas/{clave}", (string clave, IConsultasRepository c) =>
     Ejecutar(async () =>
     {
@@ -80,3 +86,6 @@ api.MapGet("/consultas/{clave}", (string clave, IConsultasRepository c) =>
     }));
 
 app.Run();
+
+// Cuerpo que envía la Web al facturar pendientes: { "IdAsesor": 41 }
+public record FacturarPendientesRequest(int IdAsesor);
